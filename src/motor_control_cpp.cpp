@@ -263,6 +263,24 @@ int MotorController::leg_set_motion_parameter(uint8_t motor_id, float torque, fl
 }
 
 // 解析电机数据
+int MotorController::get_motor_state(uint8_t motor_id, MotorState& state) {
+    // 发送电机状态请求
+    std::vector<uint8_t> data = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint32_t arbitration_id = 0x02000000 | (master_id_ << 8) | motor_id;
+    std::vector<uint8_t> rx_data;
+    
+    // 发送请求并接收响应
+    int result = send_extended_frame(arbitration_id, data, true, rx_data);
+    if (result != 0) {
+        std::cerr << "Failed to get motor state for motor ID: " << static_cast<int>(motor_id) << std::endl;
+        return result;
+    }
+    
+    // 解析响应数据
+    state = parse_motor_data(rx_data);
+    return 0;
+}
+
 MotorState MotorController::parse_motor_data(const std::vector<uint8_t>& data) {
     MotorState state;
     

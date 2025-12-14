@@ -218,16 +218,27 @@ CallbackReturn MotorHardware::on_deactivate(const rclcpp_lifecycle::State & prev
 
 return_type MotorHardware::read(const rclcpp::Time & time, const rclcpp::Duration & period)
 {
-  // 这里需要实现从电机读取状态的逻辑
-  // 由于当前的MotorController没有提供轮询读取电机状态的方法，
-  // 我们需要根据实际情况实现
-  
-  // 暂时使用模拟数据进行测试
-  for (size_t i = 0; i < joint_positions_.size(); i++) {
-    // 模拟电机位置向命令值靠近
-    joint_positions_[i] = joint_positions_[i] * 0.9 + joint_commands_[i] * 0.1;
-    joint_velocities_[i] = (joint_positions_[i] - joint_positions_[i] * 0.9) * 10.0;
-    joint_efforts_[i] = 0.0;
+  // 从每个电机读取真实状态
+  for (size_t i = 0; i < motor_ids_.size(); i++) {
+    if (motor_enabled_[i]) {
+      MotorState state;
+      int result = motor_controller_->get_motor_state(motor_ids_[i], state);
+      if (result == 0) {
+        // 更新电机状态
+        joint_positions_[i] = static_cast<double>(state.position);
+        joint_velocities_[i] = static_cast<double>(state.speed);
+        joint_efforts_[i] = static_cast<double>(state.torque);
+        
+        // 记录电机状态信息
+        RCLCPP_DEBUG(rclcpp::get_logger("MotorHardware"), 
+                     "Motor %d state: position=%.3f, velocity=%.3f, effort=%.3f, temperature=%.1f°C", 
+                     motor_ids_[i], state.position, state.speed, state.torque, state.temperature);
+      } else {
+        // 获取状态失败时记录错误
+        RCLCPP_ERROR(rclcpp::get_logger("MotorHardware"), 
+                     "Failed to read state for motor %d", motor_ids_[i]);
+      }
+    }
   }
 
   return return_type::OK;

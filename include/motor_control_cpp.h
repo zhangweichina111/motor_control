@@ -84,6 +84,9 @@ public:
     int set_motion_disable(uint8_t motor_id);
     int leg_set_motion_parameter(uint8_t motor_id, float torque, float radian, float speed, float kp, float kd);
     
+    // 获取电机状态
+    int get_motor_state(uint8_t motor_id, MotorState& state);
+    
     // 电机数据解析
     MotorState parse_motor_data(const std::vector<uint8_t>& data);
 };
